@@ -39,7 +39,7 @@ TienKung-Lab is built with IsaacSim 4.5.0 and IsaacLab 2.1.0.
 
 - Install Isaac Lab by following the [installation guide](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html). We recommend using the conda installation as it simplifies calling Python scripts from the terminal.
 
-- Clone this repository separately from the Isaac Lab installation (i.e. outside the `IsaacLab` directory):
+- Clone this repository separately from the Isaac Lab installation (i.e. outside the `IsaacLab` directory)
 
 - Using a python interpreter that has Isaac Lab installed, install the library
 

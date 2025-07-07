@@ -1,31 +1,6 @@
 # RSL RL
 We have developed a reinforcement learning framework based on [RSL RL](https://github.com/leggedrobotics/rsl_rl), incorporating Adversarial Motion Priors (AMP). This framework is designed to enable efficient, stable, and natural walking and running behaviors for full-scale humanoid robot TienKung.
 
-## Setup
-
-The package can be installed via PyPI with:
-
-```bash
-pip install rsl-rl-lib
-```
-
-or by cloning this repository and installing it with:
-
-```bash
-git clone https://github.com/leggedrobotics/rsl_rl
-cd rsl_rl
-pip install -e .
-```
-
-The package supports the following logging frameworks which can be configured through `logger`:
-
-* Tensorboard: https://www.tensorflow.org/tensorboard/
-* Weights & Biases: https://wandb.ai/site
-* Neptune: https://docs.neptune.ai/
-
-For a demo configuration of PPO, please check the [dummy_config.yaml](config/dummy_config.yaml) file.
-
-
 ## Contribution Guidelines
 
 For documentation, we adopt the [Google Style Guide](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) for docstrings. Please make sure that your code is well-documented and follows the guidelines.
