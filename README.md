@@ -156,4 +156,10 @@ In some VsCode versions, the indexing of part of the extensions is missing. In t
 * [RSL RL](https://github.com/leggedrobotics/rsl_rl): a fast and simple implementation of RL algorithms.
 * [AMP_for_hardware](https://github.com/Alescontrela/AMP_for_hardware?tab=readme-ov-file): codebase for learning skills from short reference motions using Adversarial Motion Priors.
 * [Omni-Perception](https://acodedog.github.io/OmniPerceptionPages/): a perception library for legged robots, which provides a set of sensors and perception algorithms.
-* [Warp](https://github.com/NVIDIA/warp): a Python framework for writing high-performance simulation and graphics code. 
+* [Warp](https://github.com/NVIDIA/warp): a Python framework for writing high-performance simulation and graphics code.
+
+## Discussions
+If you're interested in TienKung-Lab, welcome to join our WeChat group for discussions.
+
+<img src="./docs/qrcode.png" border=0 width=30%>
+
