@@ -25,7 +25,7 @@ import mujoco_viewer
 import numpy as np
 import torch
 from pynput import keyboard
-
+import time
 
 class SimToSimCfg:
     """Configuration class for sim2sim parameters.
@@ -72,6 +72,7 @@ class MujocoRunner:
         self.policy = torch.jit.load(network_path)
         self.data = mujoco.MjData(self.model)
         self.viewer = mujoco_viewer.MujocoViewer(self.model, self.data)
+        self.viewer._render_every_frame = False
         self.init_variables()
 
     def init_variables(self) -> None:
@@ -207,10 +208,16 @@ class MujocoRunner:
             self.action = np.clip(self.action, -self.cfg.sim.clip_actions, self.cfg.sim.clip_actions)
 
             for sim_update in range(self.cfg.sim.decimation):
+                step_start_time = time.time()
+
                 self.data.ctrl = self.position_control()
                 mujoco.mj_step(self.model, self.data)
+                self.viewer.render()
 
-            self.viewer.render()
+                elapsed = time.time() - step_start_time
+                sleep_time = self.cfg.sim.dt - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
             self.episode_length_buf += 1
             self.calculate_gait_para()
 
