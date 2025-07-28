@@ -161,5 +161,5 @@ In some VsCode versions, the indexing of part of the extensions is missing. In t
 ## Discussions
 If you're interested in TienKung-Lab, welcome to join our WeChat group for discussions.
 
-<img src="./docs/qrcode.png" border=0 width=30%>
+<img src="./docs/qrcode.png" border=0 width=40%>
 
