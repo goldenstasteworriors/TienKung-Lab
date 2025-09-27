@@ -218,6 +218,9 @@ class TienKungEnv(VecEnv):
         self.sim_step_counter = 0
         self.time_out_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
 
+        self.left_arm_local_vec = torch.tensor([0.0, 0.0, -0.3], device=self.device).repeat((self.num_envs, 1))
+        self.right_arm_local_vec = torch.tensor([0.0, 0.0, -0.3], device=self.device).repeat((self.num_envs, 1))
+
         # Init gait parameter
         self.gait_phase = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
         self.gait_cycle = torch.full(
@@ -300,6 +303,53 @@ class TienKungEnv(VecEnv):
         self.sim.render()
         self.sim.step()
         self.scene.update(dt=self.step_dt)
+
+        left_hand_pos = (
+            self.robot.data.body_state_w[:, self.elbow_body_ids[0], :3]
+            - self.robot.data.root_state_w[:, 0:3]
+            + quat_rotate(self.robot.data.body_state_w[:, self.elbow_body_ids[0], 3:7], self.left_arm_local_vec)
+        )
+        right_hand_pos = (
+            self.robot.data.body_state_w[:, self.elbow_body_ids[1], :3]
+            - self.robot.data.root_state_w[:, 0:3]
+            + quat_rotate(self.robot.data.body_state_w[:, self.elbow_body_ids[1], 3:7], self.right_arm_local_vec)
+        )
+        left_hand_pos = quat_apply(quat_conjugate(self.robot.data.root_state_w[:, 3:7]), left_hand_pos)
+        right_hand_pos = quat_apply(quat_conjugate(self.robot.data.root_state_w[:, 3:7]), right_hand_pos)
+        left_foot_pos = (
+            self.robot.data.body_state_w[:, self.feet_body_ids[0], :3] - self.robot.data.root_state_w[:, 0:3]
+        )
+        right_foot_pos = (
+            self.robot.data.body_state_w[:, self.feet_body_ids[1], :3] - self.robot.data.root_state_w[:, 0:3]
+        )
+        left_foot_pos = quat_apply(quat_conjugate(self.robot.data.root_state_w[:, 3:7]), left_foot_pos)
+        right_foot_pos = quat_apply(quat_conjugate(self.robot.data.root_state_w[:, 3:7]), right_foot_pos)
+
+        self.left_leg_dof_pos =  dof_pos[:, self.left_leg_ids] 
+        self.right_leg_dof_pos = dof_pos[:, self.right_leg_ids]
+        self.left_leg_dof_vel =  dof_vel[:, self.left_leg_ids] 
+        self.right_leg_dof_vel = dof_vel[:, self.right_leg_ids]
+        self.left_arm_dof_pos =  dof_pos[:, self.left_arm_ids] 
+        self.right_arm_dof_pos = dof_pos[:, self.right_arm_ids]
+        self.left_arm_dof_vel =  dof_vel[:, self.left_arm_ids] 
+        self.right_arm_dof_vel = dof_vel[:, self.right_arm_ids]
+        return torch.cat(
+            (
+                self.right_arm_dof_pos,
+                self.left_arm_dof_pos,
+                self.right_leg_dof_pos,
+                self.left_leg_dof_pos,
+                self.right_arm_dof_vel,
+                self.left_arm_dof_vel,
+                self.right_leg_dof_vel,
+                self.left_leg_dof_vel,
+                left_hand_pos,
+                right_hand_pos,
+                left_foot_pos,
+                right_foot_pos
+            ),
+            dim=-1,
+        )
 
     def compute_current_observations(self):
         robot = self.robot
@@ -523,9 +573,6 @@ class TienKungEnv(VecEnv):
 
     def get_amp_obs_for_expert_trans(self):
         """Gets amp obs from policy"""
-        self.left_arm_local_vec = torch.tensor([0.0, 0.0, -0.3], device=self.device).repeat((self.num_envs, 1))
-        self.right_arm_local_vec = torch.tensor([0.0, 0.0, -0.3], device=self.device).repeat((self.num_envs, 1))
-
         left_hand_pos = (
             self.robot.data.body_state_w[:, self.elbow_body_ids[0], :3]
             - self.robot.data.root_state_w[:, 0:3]

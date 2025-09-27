@@ -24,12 +24,15 @@ from legged_lab.utils import task_registry
 
 # local imports
 import legged_lab.utils.cli_args as cli_args  # isort: skip
+import numpy as np
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with RSL-RL.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+parser.add_argument("--save_path", type=str, default=None, help="Path to save the txt file")
+parser.add_argument("--fps", type=float, default=30.0, help="Target fps")
 
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
@@ -70,13 +73,46 @@ def play_amp_animation():
     env = env_class(env_cfg, args_cli.headless)
 
     frame_cnt = 0
+    all_frames = []
     while simulation_app.is_running():
         while True:
-            time = (frame_cnt % (env.motion_len - 1)) * 0.033
-            env.visualize_motion(time)
+            time = (frame_cnt % (env.motion_len)) * (1.0/args_cli.fps)
+            frame = env.visualize_motion(time)
+            if args_cli.save_path:
+                frame = frame.cpu().numpy().reshape(-1)
+                all_frames.append(frame)
             frame_cnt += 1
+            if frame_cnt >= (env.motion_len - 1):  
+                break
+        break
 
+    if args_cli.save_path:
+        all_frames_np = np.stack(all_frames, axis=0)
+        np.savetxt(args_cli.save_path, all_frames_np, fmt='%f', delimiter=', ')
 
+        with open(args_cli.save_path, 'r') as f:
+            frames_data = f.readlines()
+
+        frames_data_len = len(frames_data)
+        with open(args_cli.save_path, 'w') as f:
+            f.write('{\n')
+            f.write('"LoopMode": "Wrap",\n')
+            f.write(f'"FrameDuration": {1.0 / args_cli.fps:.3f},\n')
+            f.write('"EnableCycleOffsetPosition": true,\n')
+            f.write('"EnableCycleOffsetRotation": true,\n')
+            f.write('"MotionWeight": 0.5,\n\n')
+            f.write('"Frames":\n[\n')
+
+            for i, line in enumerate(frames_data):
+                line_start_str = '  ['
+                if i == frames_data_len - 1:
+                    f.write(line_start_str + line.rstrip() + ']\n')
+                else:
+                    f.write(line_start_str + line.rstrip() + '],\n')
+
+            f.write(']\n}')
+
+        print(f"✅ Successfully converted to {args_cli.save_path}")
 if __name__ == "__main__":
     play_amp_animation()
     simulation_app.close()

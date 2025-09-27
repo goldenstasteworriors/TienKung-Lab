@@ -164,6 +164,8 @@ class AMPLoaderDisplay:
         p = float(time) / self.trajectory_lens[traj_idx]
         n = self.trajectories_full[traj_idx].shape[0]
         idx_low, idx_high = int(np.floor(p * n)), int(np.ceil(p * n))
+        idx_low = min(idx_low, n - 1)
+        idx_high = min(idx_high, n - 1)
         frame_start = self.trajectories_full[traj_idx][idx_low]
         frame_end = self.trajectories_full[traj_idx][idx_high]
         blend = p * n - idx_low

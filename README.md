@@ -29,8 +29,7 @@ This framework is an RL-based locomotion control system designed for full-sized 
 The codebase is built on IsaacLab, supports Sim2Sim transfer to MuJoCo, and features a modular architecture for seamless customization and extension. Additionally, it incorporates ray-casting-based sensors for enhanced perception, enabling precise environmental interaction and obstacle avoidance.
 
 ## TODO List
-- [ ] Add motion dataset for TienKung
-- [ ] Motion retargeting support
+- [x] Motion retargeting support 2025-09-27
 - [ ] Add more sensors
 - [ ] Add Perceptive Control
 
@@ -61,6 +60,44 @@ python legged_lab/scripts/train.py --task=walk  --logger=tensorboard --headless 
 ```
 
 ## Usage
+
+### Motion Retargeting
+
+| AMASS  |  GMR               |                     TIENKUNGLAB                      | 
+| :----: | :--------------------------------------: | :----------------------------------------------: | 
+| <img src="docs/0007_Walking001.gif" height="150">   | <img src="docs/gmr.gif" height="150"> | <img src="docs/tienkunglab.gif" height="150"> | 
+
+This section uses [GMR](https://github.com/YanjieZe/GMR) for motion retargeting, Tienkung currently supports motion retargeting only for SMPLX types (AMASS, OMOMO).
+
+**1. Prepare the dataset and Motion retargeting with [GMR](https://github.com/YanjieZe/GMR).**
+```bash
+python scripts/smplx_to_robot.py --smplx_file <path_to_smplx_data> --robot tienkung  --save_path <path_to_save_robot_data.pkl>
+```
+**2. Data Processing and Data Saving.**
+
+The dataset consists of two parts with distinct functions and formats, requiring conversion in two steps.
+
+- **`motion_visualization/`**  
+  Used for motion playback with `play_amp_animation.py` to check motion correctness and quality.  
+  Data fields:  [root_pos, root_rot, dof_pos, root_lin_vel, root_ang_vel, dof_vel]
+
+- **`motion_amp_expert/`**  
+  Used during training as expert reference data for AMP.  
+  Data fields:  [dof_pos, dof_vel, end-effector pos]
+  
+- **Step 1: Data Processing and Visualization Data Saving.**
+
+```bash
+python legged_lab/scripts/gmr_data_conversion.py --input_pkl <path_to_save_robot_data.pkl> --output_txt legged_lab/envs/tienkung/datasets/motion_visualization/motion.txt
+```
+
+**Note**: Before starting step 2, set the `amp_motion_files_display` path in the config to the file generated in step 1.
+
+- **Step 2: Motion Visualization and Expert Data Saving.**
+```bash
+python legged_lab/scripts/play_amp_animation.py --task=walk --num_envs=1 --save_path legged_lab/envs/tienkung/datasets/motion_amp_expert/motion.txt --fps 30.0
+```
+**Note**: After step 2, set the `amp_motion_files` path in the config to the file generated in step 2.
 
 ### Visualize motion
 
@@ -150,7 +187,7 @@ In some VsCode versions, the indexing of part of the extensions is missing. In t
 ```
 
 ## Acknowledgement
-
+* [GMR](https://github.com/YanjieZe/GMR):General Motion Retargeting.
 * [Legged Lab](https://github.com/Hellod035/LeggedLab): a direct IsaacLab Workflow for Legged Robots.
 * [Humanoid-Gym](https://github.com/roboterax/humanoid-gym):a reinforcement learning (RL) framework based on NVIDIA Isaac Gym, with Sim2Sim support.
 * [RSL RL](https://github.com/leggedrobotics/rsl_rl): a fast and simple implementation of RL algorithms.
