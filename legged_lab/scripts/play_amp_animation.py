@@ -75,16 +75,15 @@ def play_amp_animation():
     frame_cnt = 0
     all_frames = []
     while simulation_app.is_running():
-        while True:
-            time = (frame_cnt % (env.motion_len)) * (1.0/args_cli.fps)
-            frame = env.visualize_motion(time)
-            if args_cli.save_path:
-                frame = frame.cpu().numpy().reshape(-1)
-                all_frames.append(frame)
-            frame_cnt += 1
-            if frame_cnt >= (env.motion_len - 1):  
+        time = (frame_cnt % (env.motion_len)) * (1.0/args_cli.fps)
+        frame = env.visualize_motion(time)
+        if args_cli.save_path:
+            frame = frame.cpu().numpy().reshape(-1)
+            all_frames.append(frame)
+            # 如果保存模式,只播放一次
+            if frame_cnt >= (env.motion_len - 1):
                 break
-        break
+        frame_cnt += 1
 
     if args_cli.save_path:
         all_frames_np = np.stack(all_frames, axis=0)

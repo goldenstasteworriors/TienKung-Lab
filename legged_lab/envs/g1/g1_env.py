@@ -157,8 +157,8 @@ class G1Env(VecEnv):
         )
         self.left_leg_ids, _ = self.robot.find_joints(
             name_keys=[
+                "left_hip_pitch_joint",  # GMR outputs pitch first
                 "left_hip_roll_joint",
-                "left_hip_pitch_joint",
                 "left_hip_yaw_joint",
                 "left_knee_joint",
                 "left_ankle_pitch_joint",
@@ -168,8 +168,8 @@ class G1Env(VecEnv):
         )
         self.right_leg_ids, _ = self.robot.find_joints(
             name_keys=[
+                "right_hip_pitch_joint",  # GMR outputs pitch first
                 "right_hip_roll_joint",
-                "right_hip_pitch_joint",
                 "right_hip_yaw_joint",
                 "right_knee_joint",
                 "right_ankle_pitch_joint",
@@ -254,15 +254,32 @@ class G1Env(VecEnv):
         dof_pos = torch.zeros((self.num_envs, self.robot.num_joints), device=device)
         dof_vel = torch.zeros((self.num_envs, self.robot.num_joints), device=device)
 
-        dof_pos[:, self.left_leg_ids] = visual_motion_frame[6:12]
-        dof_pos[:, self.right_leg_ids] = visual_motion_frame[12:18]
-        dof_pos[:, self.left_arm_ids] = visual_motion_frame[18:22]
-        dof_pos[:, self.right_arm_ids] = visual_motion_frame[22:26]
+        # IMPORTANT: AMPLoaderDisplay only loads first 52 dims from the motion file:
+        # visual_motion_frame format: [0:26] dof_pos, [26:52] dof_vel (NO root data!)
+        # But our motion file has 70 dims with 29 DOF, AMPLoaderDisplay truncates to first 52
+        # Since file has [root(6) + dof_pos(29) + root_vel(6) + dof_vel(29)] = 70
+        # AMPLoaderDisplay takes [0:52] which is [root(6) + dof_pos(29) + root_vel(6) + dof_vel(11)]
+        # This is WRONG! We need to read the file differently for G1.
 
-        dof_vel[:, self.left_leg_ids] = visual_motion_frame[32:38]
-        dof_vel[:, self.right_leg_ids] = visual_motion_frame[38:44]
-        dof_vel[:, self.left_arm_ids] = visual_motion_frame[44:48]
-        dof_vel[:, self.right_arm_ids] = visual_motion_frame[48:52]
+        # For now, work with what AMPLoaderDisplay gives us (first 52 dims of file):
+        # File structure: [0:6] root, [6:35] dof_pos(29), [35:41] root_vel, [41:70] dof_vel(29)
+        # AMPLoaderDisplay gives: visual_motion_frame[0:52] = file[0:52] = [root(6) + dof_pos(29) + root_vel(6) + dof_vel(11)]
+
+        # GMR dof_pos has 29 DOF: [legs(12) + waist(3) + left_arm(4) + left_wrist(3) + right_arm(4) + right_wrist(3)]
+        # G1 environment uses 20 DOF: [legs(12) + arms(8)], no waist and wrist joints
+
+        # Skip root data (first 6 dims), then map dof_pos (29 dims available)
+        dof_pos_offset = 6
+        dof_pos[:, self.left_leg_ids] = visual_motion_frame[dof_pos_offset+0:dof_pos_offset+6]    # [6:12] left leg
+        dof_pos[:, self.right_leg_ids] = visual_motion_frame[dof_pos_offset+6:dof_pos_offset+12]  # [12:18] right leg
+        dof_pos[:, self.left_arm_ids] = visual_motion_frame[dof_pos_offset+15:dof_pos_offset+19]  # [21:25] left arm (skip waist [18:21])
+        dof_pos[:, self.right_arm_ids] = visual_motion_frame[dof_pos_offset+22:dof_pos_offset+26] # [28:32] right arm (skip left wrist [25:28])
+
+        # Velocity: AMPLoaderDisplay only has 11 dof_vel dims (truncated from 29)
+        # We can only get: [35:41] root_vel(6) + [41:46] first 11 dof_vel
+        # This is insufficient! We need all 29 dof_vel but only have 11.
+        # Solution: set velocities to zero or compute from position differences
+        dof_vel[:, :] = 0.0  # Set all velocities to zero as we don't have complete data
 
         self.robot.write_joint_position_to_sim(dof_pos)
         self.robot.write_joint_velocity_to_sim(dof_vel)

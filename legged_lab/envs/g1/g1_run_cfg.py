@@ -332,7 +332,7 @@ class G1RunAgentCfg(RslRlOnPolicyRunnerCfg):
 
     # amp parameter
     amp_reward_coef = 0.3
-    amp_motion_files = ["legged_lab/envs/g1/datasets/motion_amp_expert/run.txt"]
+    amp_motion_files = ["legged_lab/envs/g1/datasets/motion_amp_expert/walk1_1_start4_end9.txt"]
     amp_num_preload_transitions = 200000
     amp_task_reward_lerp = 0.7
     amp_discr_hidden_dims = [1024, 512, 256]
