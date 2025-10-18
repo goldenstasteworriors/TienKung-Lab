@@ -3,6 +3,7 @@
 .vscode
 outputs
 logs
+log
 run_bash.sh
 wandb
 MUJOCO_LOG.TXT
