@@ -36,7 +36,7 @@ from legged_lab.envs.g1.g1_run_cfg import G1RunFlatEnvCfg
 from legged_lab.envs.g1.g1_walk_cfg import G1WalkFlatEnvCfg
 from legged_lab.utils.env_utils.scene import SceneCfg
 from rsl_rl.env import VecEnv
-from rsl_rl.utils.motion_loader_for_display_g1 import AMPLoaderDisplay_G1
+from rsl_rl.utils import AMPLoaderDisplay_G1
 
 
 class G1Env(VecEnv):
@@ -364,31 +364,51 @@ class G1Env(VecEnv):
         left_foot_pos = quat_apply(quat_conjugate(self.robot.data.root_state_w[:, 3:7]), left_foot_pos)
         right_foot_pos = quat_apply(quat_conjugate(self.robot.data.root_state_w[:, 3:7]), right_foot_pos)
 
-        self.left_leg_dof_pos =  dof_pos[:, self.left_leg_ids] 
-        self.right_leg_dof_pos = dof_pos[:, self.right_leg_ids]
-        self.left_leg_dof_vel =  dof_vel[:, self.left_leg_ids] 
-        self.right_leg_dof_vel = dof_vel[:, self.right_leg_ids]
-        self.left_arm_dof_pos =  dof_pos[:, self.left_arm_ids] 
-        self.right_arm_dof_pos = dof_pos[:, self.right_arm_ids]
-        self.left_arm_dof_vel =  dof_vel[:, self.left_arm_ids] 
-        self.right_arm_dof_vel = dof_vel[:, self.right_arm_ids]
+        # Get all DOF positions and velocities (29 dims each)
+        left_leg_dof_pos = dof_pos[:, self.left_leg_ids]       # 6
+        right_leg_dof_pos = dof_pos[:, self.right_leg_ids]     # 6
+        waist_dof_pos = dof_pos[:, self.waist_ids]             # 3
+        left_arm_dof_pos = dof_pos[:, self.left_arm_ids]       # 4
+        left_wrist_dof_pos = dof_pos[:, self.left_wrist_ids]   # 3
+        right_arm_dof_pos = dof_pos[:, self.right_arm_ids]     # 4
+        right_wrist_dof_pos = dof_pos[:, self.right_wrist_ids] # 3
+
+        left_leg_dof_vel = dof_vel[:, self.left_leg_ids]       # 6
+        right_leg_dof_vel = dof_vel[:, self.right_leg_ids]     # 6
+        waist_dof_vel = dof_vel[:, self.waist_ids]             # 3
+        left_arm_dof_vel = dof_vel[:, self.left_arm_ids]       # 4
+        left_wrist_dof_vel = dof_vel[:, self.left_wrist_ids]   # 3
+        right_arm_dof_vel = dof_vel[:, self.right_arm_ids]     # 4
+        right_wrist_dof_vel = dof_vel[:, self.right_wrist_ids] # 3
+
+        # Return in AMPLoader_G1 format: [dof_pos(29) + dof_vel(29) + end_effector(12)] = 70 dims
+        # This matches the format used by get_amp_obs_for_expert_trans()
         return torch.cat(
             (
-                self.right_arm_dof_pos,
-                self.left_arm_dof_pos,
-                self.right_leg_dof_pos,
-                self.left_leg_dof_pos,
-                self.right_arm_dof_vel,
-                self.left_arm_dof_vel,
-                self.right_leg_dof_vel,
-                self.left_leg_dof_vel,
-                left_hand_pos,
-                right_hand_pos,
-                left_foot_pos,
-                right_foot_pos
+                # DOF positions (29 dims)
+                left_leg_dof_pos,      # 6
+                right_leg_dof_pos,     # 6
+                waist_dof_pos,         # 3
+                left_arm_dof_pos,      # 4
+                left_wrist_dof_pos,    # 3
+                right_arm_dof_pos,     # 4
+                right_wrist_dof_pos,   # 3
+                # DOF velocities (29 dims)
+                left_leg_dof_vel,      # 6
+                right_leg_dof_vel,     # 6
+                waist_dof_vel,         # 3
+                left_arm_dof_vel,      # 4
+                left_wrist_dof_vel,    # 3
+                right_arm_dof_vel,     # 4
+                right_wrist_dof_vel,   # 3
+                # End effectors (12 dims)
+                left_hand_pos,         # 3
+                right_hand_pos,        # 3
+                left_foot_pos,         # 3
+                right_foot_pos,        # 3
             ),
             dim=-1,
-        )
+        )  # Total: 29 + 29 + 12 = 70 dims
 
     def compute_current_observations(self):
         robot = self.robot
@@ -611,7 +631,15 @@ class G1Env(VecEnv):
         return actor_obs, self.extras
 
     def get_amp_obs_for_expert_trans(self):
-        """Gets amp obs from policy"""
+        """Gets AMP obs from policy for G1 robot.
+
+        Returns 70-dim observation matching AMPLoader_G1 format:
+        [dof_pos(29) + dof_vel(29) + end_effector_pos(12)]
+
+        DOF order (29): left_leg(6) + right_leg(6) + waist(3) + left_arm(4) + left_wrist(3) + right_arm(4) + right_wrist(3)
+        End effector order (12): left_hand(3) + right_hand(3) + left_foot(3) + right_foot(3)
+        """
+        # Get end effector positions (12 dims)
         left_hand_pos = (
             self.robot.data.body_state_w[:, self.elbow_body_ids[0], :3]
             - self.robot.data.root_state_w[:, 0:3]
@@ -632,31 +660,51 @@ class G1Env(VecEnv):
         )
         left_foot_pos = quat_apply(quat_conjugate(self.robot.data.root_state_w[:, 3:7]), left_foot_pos)
         right_foot_pos = quat_apply(quat_conjugate(self.robot.data.root_state_w[:, 3:7]), right_foot_pos)
-        self.left_leg_dof_pos = self.robot.data.joint_pos[:, self.left_leg_ids]
-        self.right_leg_dof_pos = self.robot.data.joint_pos[:, self.right_leg_ids]
-        self.left_leg_dof_vel = self.robot.data.joint_vel[:, self.left_leg_ids]
-        self.right_leg_dof_vel = self.robot.data.joint_vel[:, self.right_leg_ids]
-        self.left_arm_dof_pos = self.robot.data.joint_pos[:, self.left_arm_ids]
-        self.right_arm_dof_pos = self.robot.data.joint_pos[:, self.right_arm_ids]
-        self.left_arm_dof_vel = self.robot.data.joint_vel[:, self.left_arm_ids]
-        self.right_arm_dof_vel = self.robot.data.joint_vel[:, self.right_arm_ids]
+
+        # Get DOF positions and velocities (29 dims each)
+        left_leg_dof_pos = self.robot.data.joint_pos[:, self.left_leg_ids]      # 6
+        right_leg_dof_pos = self.robot.data.joint_pos[:, self.right_leg_ids]    # 6
+        waist_dof_pos = self.robot.data.joint_pos[:, self.waist_ids]            # 3
+        left_arm_dof_pos = self.robot.data.joint_pos[:, self.left_arm_ids]      # 4
+        left_wrist_dof_pos = self.robot.data.joint_pos[:, self.left_wrist_ids]  # 3
+        right_arm_dof_pos = self.robot.data.joint_pos[:, self.right_arm_ids]    # 4
+        right_wrist_dof_pos = self.robot.data.joint_pos[:, self.right_wrist_ids] # 3
+
+        left_leg_dof_vel = self.robot.data.joint_vel[:, self.left_leg_ids]      # 6
+        right_leg_dof_vel = self.robot.data.joint_vel[:, self.right_leg_ids]    # 6
+        waist_dof_vel = self.robot.data.joint_vel[:, self.waist_ids]            # 3
+        left_arm_dof_vel = self.robot.data.joint_vel[:, self.left_arm_ids]      # 4
+        left_wrist_dof_vel = self.robot.data.joint_vel[:, self.left_wrist_ids]  # 3
+        right_arm_dof_vel = self.robot.data.joint_vel[:, self.right_arm_ids]    # 4
+        right_wrist_dof_vel = self.robot.data.joint_vel[:, self.right_wrist_ids] # 3
+
+        # Concatenate in AMPLoader_G1 format: [dof_pos(29) + dof_vel(29) + end_effector(12)]
         return torch.cat(
             (
-                self.right_arm_dof_pos,
-                self.left_arm_dof_pos,
-                self.right_leg_dof_pos,
-                self.left_leg_dof_pos,
-                self.right_arm_dof_vel,
-                self.left_arm_dof_vel,
-                self.right_leg_dof_vel,
-                self.left_leg_dof_vel,
-                left_hand_pos,
-                right_hand_pos,
-                left_foot_pos,
-                right_foot_pos,
+                # DOF positions (29 dims)
+                left_leg_dof_pos,      # 6
+                right_leg_dof_pos,     # 6
+                waist_dof_pos,         # 3
+                left_arm_dof_pos,      # 4
+                left_wrist_dof_pos,    # 3
+                right_arm_dof_pos,     # 4
+                right_wrist_dof_pos,   # 3
+                # DOF velocities (29 dims)
+                left_leg_dof_vel,      # 6
+                right_leg_dof_vel,     # 6
+                waist_dof_vel,         # 3
+                left_arm_dof_vel,      # 4
+                left_wrist_dof_vel,    # 3
+                right_arm_dof_vel,     # 4
+                right_wrist_dof_vel,   # 3
+                # End effectors (12 dims)
+                left_hand_pos,         # 3
+                right_hand_pos,        # 3
+                left_foot_pos,         # 3
+                right_foot_pos,        # 3
             ),
             dim=-1,
-        )
+        )  # Total: 29 + 29 + 12 = 70 dims
 
     @staticmethod
     def seed(seed: int = -1) -> int:

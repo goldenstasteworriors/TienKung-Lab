@@ -20,6 +20,8 @@
 
 from .motion_loader import AMPLoader
 from .motion_loader_for_display import AMPLoaderDisplay
+from .motion_loader_g1 import AMPLoader_G1
+from .motion_loader_for_display_g1 import AMPLoaderDisplay_G1
 from .utils import (
     Normalizer,
     resolve_nn_activation,
@@ -32,4 +34,6 @@ from .utils import (
 __all__ = [
     "AMPLoader",
     "AMPLoaderDisplay",
+    "AMPLoader_G1",
+    "AMPLoaderDisplay_G1",
 ]

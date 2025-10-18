@@ -36,7 +36,7 @@ from rsl_rl.modules import (
     StudentTeacher,
     StudentTeacherRecurrent,
 )
-from rsl_rl.utils import AMPLoader, Normalizer, store_code_state
+from rsl_rl.utils import AMPLoader, AMPLoader_G1, Normalizer, store_code_state
 
 
 class AmpOnPolicyRunner:
@@ -106,14 +106,43 @@ class AmpOnPolicyRunner:
             # this is used by the symmetry function for handling different observation terms
             self.alg_cfg["symmetry_cfg"]["_env"] = env
 
-        # init amp loader
-        amp_data = AMPLoader(
-            device,
-            time_between_frames=self.env.step_dt,
-            preload_transitions=True,
-            num_preload_transitions=train_cfg["amp_num_preload_transitions"],
-            motion_files=train_cfg["amp_motion_files"],
-        )
+        # init amp loader - choose appropriate loader based on robot type
+        # Detect robot type from environment config or action dimensions
+        # G1 has 29 DOF, TienKung has 20 DOF
+        num_actions = self.env.num_actions
+        robot_type = train_cfg.get("robot_type", None)
+
+        # Auto-detect robot type if not specified
+        if robot_type is None:
+            if num_actions == 29:
+                robot_type = "g1"
+                print(f"Auto-detected G1 robot (29 DOF) based on num_actions={num_actions}")
+            elif num_actions == 20:
+                robot_type = "tienkung"
+                print(f"Auto-detected TienKung robot (20 DOF) based on num_actions={num_actions}")
+            else:
+                print(f"Warning: Unknown robot type with {num_actions} DOF. Defaulting to TienKung AMPLoader.")
+                robot_type = "tienkung"
+
+        # Create appropriate AMPLoader
+        if robot_type == "g1":
+            print("Using AMPLoader_G1 for G1 robot (29 DOF)")
+            amp_data = AMPLoader_G1(
+                device,
+                time_between_frames=self.env.step_dt,
+                preload_transitions=True,
+                num_preload_transitions=train_cfg["amp_num_preload_transitions"],
+                motion_files=train_cfg["amp_motion_files"],
+            )
+        else:
+            print("Using AMPLoader for TienKung robot (20 DOF)")
+            amp_data = AMPLoader(
+                device,
+                time_between_frames=self.env.step_dt,
+                preload_transitions=True,
+                num_preload_transitions=train_cfg["amp_num_preload_transitions"],
+                motion_files=train_cfg["amp_motion_files"],
+            )
         amp_normalizer = Normalizer(amp_data.observation_dim)
         discriminator = Discriminator(
             amp_data.observation_dim * 2,
