@@ -62,8 +62,9 @@ class GaitCfg:
 
 @configclass
 class LiteRewardCfg:
-    track_lin_vel_xy_exp = RewTerm(func=mdp.track_lin_vel_xy_yaw_frame_exp, weight=1.0, params={"std": 0.5})
-    track_ang_vel_z_exp = RewTerm(func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"std": 0.5})
+    #ykjmod
+    track_lin_vel_xy_exp = RewTerm(func=mdp.track_lin_vel_xy_yaw_frame_exp, weight=2.0, params={"std": 0.5})#本来是1.0
+    track_ang_vel_z_exp = RewTerm(func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"std": 0.5})#本来是1.0
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-1.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     energy = RewTerm(func=mdp.energy, weight=-1e-3)
@@ -112,9 +113,10 @@ class LiteRewardCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_sensor", body_names=[".*_ankle_roll_link"])},
     )
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-2.0)
+    #ykjmod
     joint_deviation_hip = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.15,
+        weight=-0.015,#本来是0.15
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -129,12 +131,12 @@ class LiteRewardCfg:
     )
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.2,
+        weight=-0.02,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_roll_joint", ".*_shoulder_yaw_joint"])},
     )
     joint_deviation_legs = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.02,
+        weight=-0.002,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -246,7 +248,8 @@ class G1WalkFlatEnvCfg:
                 mode="startup",
                 params={
                     "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-                    "mass_distribution_params": (-5.0, 5.0),
+                    #ykjmod 这里本来是5.0,但是是是因为tienkung的pelvis有27kg，g1只有3.8kg；tienkung总质量61.76kg，g135kg，现在用的是按pelvis比例缩放的
+                    "mass_distribution_params": (-0.7, 0.7),
                     "operation": "add",
                 },
             ),
@@ -319,21 +322,22 @@ class G1WalkAgentCfg(RslRlOnPolicyRunnerCfg):
         rnd_cfg=None,  # RslRlRndCfg()
     )
     clip_actions = None
-    save_interval = 100
+    save_interval = 1000
     runner_class_name = "AmpOnPolicyRunner"
-    experiment_name = "walk"
+    experiment_name = "g1_walk"
     run_name = ""
     logger = "tensorboard"
-    neptune_project = "walk"
-    wandb_project = "walk"
+    neptune_project = "g1_walk"
+    wandb_project = "g1_walk"
     resume = False
     load_run = ".*"
     load_checkpoint = "model_.*.pt"
 
     # amp parameter
-    amp_reward_coef = 0.3
+    #ykjmod
+    amp_reward_coef = 0.5 #本来是0.3
     amp_motion_files = ["legged_lab/envs/g1/datasets/motion_amp_expert/walk1_2_start54_end61.txt"]
     amp_num_preload_transitions = 200000
-    amp_task_reward_lerp = 0.7
+    amp_task_reward_lerp = 0.5 #本来是0.7
     amp_discr_hidden_dims = [1024, 512, 256]
     min_normalized_std = [0.05] * 29  # G1 has 29 DOF
