@@ -150,9 +150,9 @@ class LiteRewardCfg:
         },
     )
 
-    gait_feet_frc_perio = RewTerm(func=mdp.gait_feet_frc_perio, weight=1.0, params={"delta_t": 0.02})
-    gait_feet_spd_perio = RewTerm(func=mdp.gait_feet_spd_perio, weight=1.0, params={"delta_t": 0.02})
-    gait_feet_frc_support_perio = RewTerm(func=mdp.gait_feet_frc_support_perio, weight=0.6, params={"delta_t": 0.02})
+    gait_feet_frc_perio = RewTerm(func=mdp.gait_feet_frc_perio, weight=0.0, params={"delta_t": 0.02})
+    gait_feet_spd_perio = RewTerm(func=mdp.gait_feet_spd_perio, weight=0.0, params={"delta_t": 0.02})
+    gait_feet_frc_support_perio = RewTerm(func=mdp.gait_feet_frc_support_perio, weight=0.0, params={"delta_t": 0.02})
 
     ankle_torque = RewTerm(func=mdp.ankle_torque, weight=-0.0005)
     ankle_action = RewTerm(func=mdp.ankle_action, weight=-0.001)
