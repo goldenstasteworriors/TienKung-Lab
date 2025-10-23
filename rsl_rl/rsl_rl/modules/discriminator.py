@@ -53,9 +53,9 @@ class Discriminator(nn.Module):
             amp_layers.append(nn.ReLU())
             curr_in_dim = hidden_dim
         self.trunk = nn.Sequential(*amp_layers).to(device)
-        self.amp_linear = nn.Linear(hidden_layer_sizes[-1], 1).to(device)
+        self.amp_linear = nn.Linear(hidden_layer_sizes[-1], 1).to(device) #
 
-        self.trunk.train()
+        self.trunk.train() #设置为训练模式
         self.amp_linear.train()
 
         self.task_reward_lerp = task_reward_lerp
