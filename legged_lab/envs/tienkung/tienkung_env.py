@@ -516,6 +516,23 @@ class TienKungEnv(VecEnv):
             > 1.0,
             dim=1,
         )
+
+        # 获取 pelvis 高度（Z轴坐标）
+        pelvis_height = self.robot.data.root_pos_w[:, 2]
+
+        # 每10步打印一次平均高度，用于确定阈值
+        if self.episode_length_buf[0] % 10 == 0:
+            avg_height = pelvis_height.mean().item()
+            min_height = pelvis_height.min().item()
+            max_height = pelvis_height.max().item()
+            print(f"[Pelvis Height] Step {self.episode_length_buf[0].item()}: "
+                  f"Avg={avg_height:.3f}m, Min={min_height:.3f}m, Max={max_height:.3f}m")
+
+        # Pelvis 高度终止条件
+        if hasattr(self.cfg.robot, 'terminate_pelvis_height') and self.cfg.robot.terminate_pelvis_height > 0.0:
+            pelvis_too_low = pelvis_height < self.cfg.robot.terminate_pelvis_height
+            reset_buf |= pelvis_too_low
+
         time_out_buf = self.episode_length_buf >= self.max_episode_length
         reset_buf |= time_out_buf
         return reset_buf, time_out_buf

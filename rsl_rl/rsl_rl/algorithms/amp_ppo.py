@@ -354,8 +354,8 @@ class AMPPPO:
                         param_group["lr"] = self.learning_rate
 
             # Surrogate loss
-            ratio = torch.exp(actions_log_prob_batch - torch.squeeze(old_actions_log_prob_batch))
-            surrogate = -torch.squeeze(advantages_batch) * ratio
+            ratio = torch.exp(actions_log_prob_batch - torch.squeeze(old_actions_log_prob_batch))#新旧策略下采取同一动作的概率比
+            surrogate = -torch.squeeze(advantages_batch) * ratio#在概率变化下比原来好多少
             surrogate_clipped = -torch.squeeze(advantages_batch) * torch.clamp(
                 ratio, 1.0 - self.clip_param, 1.0 + self.clip_param
             )
@@ -428,11 +428,11 @@ class AMPPPO:
                     expert_state = self.amp_normalizer.normalize_torch(expert_state, self.device)
                     expert_next_state = self.amp_normalizer.normalize_torch(expert_next_state, self.device)
             policy_d = self.discriminator(torch.cat([policy_state, policy_next_state], dim=-1))
-            expert_d = self.discriminator(torch.cat([expert_state, expert_next_state], dim=-1))
+            expert_d = self.discriminator(torch.cat([expert_state, expert_next_state], dim=-1))#归一化之后再组合，都是前后两个状态拼接，专家数据是数据集采样的，另一个是真实状态采样的
             expert_loss = torch.nn.MSELoss()(expert_d, torch.ones(expert_d.size(), device=self.device))
-            policy_loss = torch.nn.MSELoss()(policy_d, -1 * torch.ones(policy_d.size(), device=self.device))
+            policy_loss = torch.nn.MSELoss()(policy_d, -1 * torch.ones(policy_d.size(), device=self.device))#这里就是看看判别器能不能把两种数据区分开
             amp_loss = 0.5 * (expert_loss + policy_loss)
-            grad_pen_loss = self.discriminator.compute_grad_pen(*sample_amp_expert, lambda_=10)
+            grad_pen_loss = self.discriminator.compute_grad_pen(*sample_amp_expert, lambda_=10)#让判别器输出对输入数据的梯度接近0,让判别器更平滑更好学
             loss += self.amploss_coef * amp_loss + self.amploss_coef * grad_pen_loss
 
             # Compute the gradients

@@ -266,6 +266,13 @@ class BaseEnv(VecEnv):
             > 1.0,
             dim=1,
         )
+
+        # Pelvis 高度终止条件
+        if hasattr(self.cfg.robot, 'terminate_pelvis_height') and self.cfg.robot.terminate_pelvis_height > 0.0:
+            pelvis_height = self.robot.data.root_pos_w[:, 2]
+            pelvis_too_low = pelvis_height < self.cfg.robot.terminate_pelvis_height
+            reset_buf |= pelvis_too_low
+
         time_out_buf = self.episode_length_buf >= self.max_episode_length
         reset_buf |= time_out_buf
         return reset_buf, time_out_buf

@@ -188,6 +188,7 @@ class G1RunFlatEnvCfg:
         action_scale=0.25,
         terminate_contacts_body_names=[".*_knee_link", ".*_shoulder_roll_link", ".*_elbow_link", "pelvis"],
         feet_body_names=[".*_ankle_roll_link"],
+        terminate_pelvis_height=0.0,  # pelvis 高度终止阈值，0 表示禁用。建议值: 0.65
     )
     reward = LiteRewardCfg()
     gait = GaitCfg()

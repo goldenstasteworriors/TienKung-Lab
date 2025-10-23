@@ -188,6 +188,7 @@ class TienKungRunFlatEnvCfg:
         action_scale=0.25,
         terminate_contacts_body_names=["knee_pitch.*", "shoulder_roll.*", "elbow_pitch.*", "pelvis"],
         feet_body_names=["ankle_roll.*"],
+        terminate_pelvis_height=0.0,  # pelvis 高度终止阈值，0 表示禁用。建议值: 0.60
     )
     reward = LiteRewardCfg()
     gait = GaitCfg()
