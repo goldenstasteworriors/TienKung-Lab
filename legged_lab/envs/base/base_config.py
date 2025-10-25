@@ -66,6 +66,7 @@ class RobotCfg:
     action_scale: float = 0.25
     terminate_contacts_body_names: list = []
     feet_body_names: list = []
+    terminate_pelvis_height: float = 0.0  # pelvis 高度终止阈值，0 表示禁用
 
 
 @configclass
