@@ -57,7 +57,7 @@ class GaitCfg:
     gait_air_ratio_r: float = 0.38
     gait_phase_offset_l: float = 0.38
     gait_phase_offset_r: float = 0.88
-    gait_cycle: float = 0.85
+    gait_cycle: float = 1.1 #原0.85,后通过可视化设定
 
 
 @configclass
@@ -149,10 +149,10 @@ class LiteRewardCfg:
             )
         },
     )
-
-    gait_feet_frc_perio = RewTerm(func=mdp.gait_feet_frc_perio, weight=0.0, params={"delta_t": 0.02})
-    gait_feet_spd_perio = RewTerm(func=mdp.gait_feet_spd_perio, weight=0.0, params={"delta_t": 0.02})
-    gait_feet_frc_support_perio = RewTerm(func=mdp.gait_feet_frc_support_perio, weight=0.0, params={"delta_t": 0.02})
+    #ykjmod
+    gait_feet_frc_perio = RewTerm(func=mdp.gait_feet_frc_perio, weight=0.0, params={"delta_t": 0.02}) #原1.0
+    gait_feet_spd_perio = RewTerm(func=mdp.gait_feet_spd_perio, weight=0.0, params={"delta_t": 0.02}) #原1.0
+    gait_feet_frc_support_perio = RewTerm(func=mdp.gait_feet_frc_support_perio, weight=0.0, params={"delta_t": 0.02}) #原1.0
 
     ankle_torque = RewTerm(func=mdp.ankle_torque, weight=-0.0005)
     ankle_action = RewTerm(func=mdp.ankle_action, weight=-0.001)
@@ -163,7 +163,7 @@ class LiteRewardCfg:
 
 @configclass
 class G1WalkFlatEnvCfg:
-    amp_motion_files_display = ["legged_lab/envs/g1/datasets/motion_visualization/walk1_2_start58_end61.txt"]
+    amp_motion_files_display = ["legged_lab/envs/g1/datasets/motion_visualization/walk1_2_start54_end61.txt"]
     device: str = "cuda:0"
     scene: BaseSceneCfg = BaseSceneCfg(
         max_episode_length_s=20.0,
@@ -294,7 +294,7 @@ class G1WalkAgentCfg(RslRlOnPolicyRunnerCfg):
     seed = 42
     device = "cuda:0"
     num_steps_per_env = 24
-    max_iterations = 50000
+    max_iterations = 500000
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         class_name="ActorCritic",
@@ -323,7 +323,7 @@ class G1WalkAgentCfg(RslRlOnPolicyRunnerCfg):
         rnd_cfg=None,  # RslRlRndCfg()
     )
     clip_actions = None
-    save_interval = 1000
+    save_interval = 2000
     runner_class_name = "AmpOnPolicyRunner"
     experiment_name = "g1_walk"
     run_name = ""
@@ -337,8 +337,8 @@ class G1WalkAgentCfg(RslRlOnPolicyRunnerCfg):
     # amp parameter
     #ykjmod
     amp_reward_coef = 0.5 #本来是0.3
-    amp_motion_files = ["legged_lab/envs/g1/datasets/motion_amp_expert/walk1_2_start58_end61.txt"]
-    amp_num_preload_transitions = 200000
+    amp_motion_files = ["legged_lab/envs/g1/datasets/motion_amp_expert/walk1_2_start54_end61.txt"]
+    amp_num_preload_transitions = 400000
     amp_task_reward_lerp = 0.5 #本来是0.7
     amp_discr_hidden_dims = [1024, 512, 256]
     min_normalized_std = [0.05] * 29  # G1 has 29 DOF
