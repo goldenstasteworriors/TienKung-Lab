@@ -336,9 +336,9 @@ class G1WalkAgentCfg(RslRlOnPolicyRunnerCfg):
 
     # amp parameter
     #ykjmod
-    amp_reward_coef = 0.5 #本来是0.3
+    amp_reward_coef = 0.5 #本来是0.3,amp奖励的系数，越大amp越重要
     amp_motion_files = ["legged_lab/envs/g1/datasets/motion_amp_expert/walk1_2_start54_end61.txt"]
-    amp_num_preload_transitions = 400000
-    amp_task_reward_lerp = 0.5 #本来是0.7
+    amp_num_preload_transitions = 200000
+    amp_task_reward_lerp = 0.5 #本来是0.7,决定AMP 和环境原始 task reward 各占多少，越小amp越重要
     amp_discr_hidden_dims = [1024, 512, 256]
     min_normalized_std = [0.05] * 29  # G1 has 29 DOF

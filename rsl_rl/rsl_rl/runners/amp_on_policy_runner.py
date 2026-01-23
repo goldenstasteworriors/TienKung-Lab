@@ -248,6 +248,14 @@ class AmpOnPolicyRunner:
         cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
+        # AMP-specific logging buffers
+        task_rewbuffer = deque(maxlen=100)
+        amp_only_rewbuffer = deque(maxlen=100)
+        discbuffer = deque(maxlen=100)
+        cur_task_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
+        cur_amp_only_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
+        cur_disc_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
+
         # create buffers for logging extrinsic and intrinsic rewards
         if self.alg.rnd:
             erewbuffer = deque(maxlen=100)
@@ -297,9 +305,20 @@ class AmpOnPolicyRunner:
                     terminal_amp_states = self.env.get_amp_obs_for_expert_trans()[reset_env_ids]
                     next_amp_obs_with_term[reset_env_ids] = terminal_amp_states
 
-                    rewards = self.alg.discriminator.predict_amp_reward(
-                        amp_obs, next_amp_obs_with_term, rewards, normalizer=self.alg.amp_normalizer
-                    )[0]
+                    # Save task reward before overriding with AMP reward
+                    task_rewards = rewards
+
+                    # Predict mixed reward used for RL update, and also keep discriminator logits
+                    rewards, disc_logits = self.alg.discriminator.predict_amp_reward(
+                        amp_obs, next_amp_obs_with_term, task_rewards, normalizer=self.alg.amp_normalizer
+                    )
+
+                    # AMP-only reward (without task interpolation) for monitoring
+                    amp_only_rewards = self.alg.discriminator.amp_reward_coef * torch.clamp(
+                        1 - (1 / 4) * torch.square(disc_logits - 1),
+                        min=0,
+                    ).squeeze(-1)
+
                     amp_obs = torch.clone(next_amp_obs)
                     self.alg.process_env_step(rewards, dones, infos, next_amp_obs_with_term)
 
@@ -319,6 +338,11 @@ class AmpOnPolicyRunner:
                             cur_reward_sum += rewards + intrinsic_rewards
                         else:
                             cur_reward_sum += rewards
+
+                        # AMP-specific reward components
+                        cur_task_reward_sum += task_rewards
+                        cur_amp_only_reward_sum += amp_only_rewards
+                        cur_disc_sum += disc_logits.squeeze(-1)
                         # Update episode length
                         cur_episode_length += 1
                         # Clear data for completed episodes
@@ -326,8 +350,18 @@ class AmpOnPolicyRunner:
                         new_ids = (dones > 0).nonzero(as_tuple=False)
                         rewbuffer.extend(cur_reward_sum[new_ids][:, 0].cpu().numpy().tolist())
                         lenbuffer.extend(cur_episode_length[new_ids][:, 0].cpu().numpy().tolist())
+
+                        task_rewbuffer.extend(cur_task_reward_sum[new_ids][:, 0].cpu().numpy().tolist())
+                        amp_only_rewbuffer.extend(cur_amp_only_reward_sum[new_ids][:, 0].cpu().numpy().tolist())
+                        # discriminator logit average per-step within the episode
+                        disc_mean = (cur_disc_sum[new_ids][:, 0] / (cur_episode_length[new_ids][:, 0] + 1.0e-8))
+                        discbuffer.extend(disc_mean.cpu().numpy().tolist())
+
                         cur_reward_sum[new_ids] = 0
                         cur_episode_length[new_ids] = 0
+                        cur_task_reward_sum[new_ids] = 0
+                        cur_amp_only_reward_sum[new_ids] = 0
+                        cur_disc_sum[new_ids] = 0
                         # -- intrinsic and extrinsic rewards
                         if self.alg.rnd:
                             erewbuffer.extend(cur_ereward_sum[new_ids][:, 0].cpu().numpy().tolist())
@@ -429,6 +463,17 @@ class AmpOnPolicyRunner:
             # everything else
             self.writer.add_scalar("Train/mean_reward", statistics.mean(locs["rewbuffer"]), locs["it"])
             self.writer.add_scalar("Train/mean_episode_length", statistics.mean(locs["lenbuffer"]), locs["it"])
+
+            # AMP-specific monitoring (episode sums / means)
+            if "task_rewbuffer" in locs and len(locs["task_rewbuffer"]) > 0:
+                self.writer.add_scalar("Amp/mean_task_reward", statistics.mean(locs["task_rewbuffer"]), locs["it"])
+            if "amp_only_rewbuffer" in locs and len(locs["amp_only_rewbuffer"]) > 0:
+                self.writer.add_scalar(
+                    "Amp/mean_amp_only_reward", statistics.mean(locs["amp_only_rewbuffer"]), locs["it"]
+                )
+            if "discbuffer" in locs and len(locs["discbuffer"]) > 0:
+                self.writer.add_scalar("Amp/mean_disc_logit", statistics.mean(locs["discbuffer"]), locs["it"])
+
             if self.logger_type != "wandb":  # wandb does not support non-integer x-axis logging
                 self.writer.add_scalar("Train/mean_reward/time", statistics.mean(locs["rewbuffer"]), self.tot_time)
                 self.writer.add_scalar(
