@@ -63,8 +63,8 @@ class GaitCfg:
 @configclass
 class LiteRewardCfg:
     #ykjmod
-    track_lin_vel_xy_exp = RewTerm(func=mdp.track_lin_vel_xy_yaw_frame_exp, weight=2.0, params={"std": 0.5})#本来是1.0
-    track_ang_vel_z_exp = RewTerm(func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"std": 0.5})#本来是1.0
+    track_lin_vel_xy_exp = RewTerm(func=mdp.track_lin_vel_xy_yaw_frame_exp, weight=1.0, params={"std": 0.5})#本来是1.0
+    track_ang_vel_z_exp = RewTerm(func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"std": 0.5})#本来是1.0
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-1.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     energy = RewTerm(func=mdp.energy, weight=-1e-3)
@@ -211,13 +211,15 @@ class G1WalkFlatEnvCfg:
     )
     commands: CommandsCfg = CommandsCfg(
         resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.2,
+        #ykjmod
+        rel_standing_envs=0.0,#原0.2
         rel_heading_envs=1.0,
         heading_command=True,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=CommandRangesCfg(
-            lin_vel_x=(-0.6, 1.0), lin_vel_y=(-0.5, 0.5), ang_vel_z=(-1.57, 1.57), heading=(-math.pi, math.pi)
+            #lin_vel_x=(-0.6, 1.0), lin_vel_y=(-0.5, 0.5)
+            lin_vel_x=(0.2, 1.0), lin_vel_y=(0.1, 0.5), ang_vel_z=(-1.57, 1.57), heading=(-math.pi, math.pi)
         ),
     )
     noise: NoiseCfg = NoiseCfg(
